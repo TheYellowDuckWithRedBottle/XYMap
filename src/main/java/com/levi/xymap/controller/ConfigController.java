@@ -1,8 +1,13 @@
 package com.levi.xymap.controller;
 
+import com.levi.xymap.service.ConfigService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * @ClassName
@@ -14,8 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 @SpringBootApplication
 @RestController
 public class ConfigController {
+    @Autowired(required = false)
+    ConfigService configService;
     @GetMapping("/helloworld")
     public String hello() {
         return "Hello World!";
+    }
+
+    @RequestMapping(value = "/tpls")
+    public List tpls(){
+        return configService.getThumbTplInfos();
     }
 }

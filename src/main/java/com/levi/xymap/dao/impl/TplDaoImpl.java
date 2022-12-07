@@ -3,8 +3,11 @@ package com.levi.xymap.dao.impl;
 import com.levi.xymap.dao.TplDao;
 import com.levi.xymap.entity.Configuration;
 import com.levi.xymap.service.TemplateService;
+import org.apache.commons.lang3.StringUtils;
+import org.hsqldb.lib.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,7 +31,15 @@ public class TplDaoImpl implements TplDao {
 
     @Override
     public List<String> getTplNames() {
-        return null;
+        List<String> names = templateService.listTplNames(TPL_LOCATION);
+        List<String> values = new ArrayList<>(names.size());
+        for(String name:names){
+            if(StringUtils.endsWith(name,TPL_SUFFIX)){
+                String fileName = name.substring(0, name.lastIndexOf(TPL_SUFFIX));
+                values.add(fileName);
+            }
+        }
+        return values;
     }
 
     @Override

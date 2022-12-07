@@ -8,4 +8,11 @@ package com.levi.xymap.entity;
  * @Version 1.0
  **/
 public class BaseMapLayer {
+    public String id;
+    public String name;
+    public String title;
+    public String url;
+    public String thumbnailUrl;
+    public boolean isTop;
+
 }
