@@ -4,7 +4,6 @@ import com.levi.xymap.dao.TplDao;
 import com.levi.xymap.entity.Configuration;
 import com.levi.xymap.service.TemplateService;
 import org.apache.commons.lang3.StringUtils;
-import org.hsqldb.lib.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;

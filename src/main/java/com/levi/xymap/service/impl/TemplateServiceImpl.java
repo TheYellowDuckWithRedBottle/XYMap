@@ -1,10 +1,13 @@
 package com.levi.xymap.service.impl;
 
 import com.levi.xymap.entity.Configuration;
+import com.levi.xymap.entity.mapper.TplMapper;
 import com.levi.xymap.service.TemplateService;
 import org.checkerframework.checker.units.qual.C;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +22,10 @@ import java.util.List;
  * @Date 2022/12/6 17:27
  * @Version 1.0
  **/
+@Service
 public class TemplateServiceImpl implements TemplateService {
+    @Autowired
+    private TplMapper tplMapper;
     private String location;
     private Configuration cfg;
     private void init() {

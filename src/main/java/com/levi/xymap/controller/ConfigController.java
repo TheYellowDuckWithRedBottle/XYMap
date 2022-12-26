@@ -1,5 +1,7 @@
 package com.levi.xymap.controller;
 
+import com.levi.xymap.entity.User;
+import com.levi.xymap.entity.mapper.UserMapper;
 import com.levi.xymap.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,6 +23,7 @@ import java.util.List;
 public class ConfigController {
     @Autowired(required = false)
     ConfigService configService;
+
     @GetMapping("/helloworld")
     public String hello() {
         return "Hello World!";
@@ -30,4 +33,7 @@ public class ConfigController {
     public List tpls(){
         return configService.getThumbTplInfos();
     }
+
+
+
 }

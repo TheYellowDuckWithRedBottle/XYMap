@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper
+                PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        <!--namespace命名空间：推荐使用dao接口的全限定名称-->
+<mapper namespace="com.levi.xymap.dao.TplDao">
+    <!--id是要执行SQL语句的唯一标识，推荐使用dao接口中的方法名称
+        resultType:告诉mybatis，将查询到的数据赋值给哪个类的对象，使用实体类的全限定名称
+        #{accountId}:占位符，表示从java程序中传来的数据
+    -->
+    <select id="selectTplById">
+        select * from om_tpl where id=#{id}
+    </select>
+</mapper>
