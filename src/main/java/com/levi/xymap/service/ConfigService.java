@@ -2,10 +2,11 @@ package com.levi.xymap.service;
 
 import com.levi.xymap.entity.Configuration;
 import com.levi.xymap.entity.ThematicMap;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-
+@Service
 public interface ConfigService {
     /**
      * 修改属性

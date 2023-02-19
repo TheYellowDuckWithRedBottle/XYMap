@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
  * @Version 1.0
  **/
 @RestController
+@RequestMapping("tpl")
 public class TplsController {
-    @Autowired
     TemplateService templateService;
     @RequestMapping("list")
     public String list(){

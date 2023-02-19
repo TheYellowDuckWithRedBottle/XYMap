@@ -1,7 +1,10 @@
 package com.levi.xymap.service;
 
-import java.util.List;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
+@Service
 public interface TemplateService {
     public String getTemplate(String tplName);
     public String getTemplate(String tplName, String encoding);
