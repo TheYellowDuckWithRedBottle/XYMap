@@ -1,10 +1,7 @@
 package com.levi.xymap.controller;
 
-import com.levi.xymap.entity.User;
-import com.levi.xymap.entity.mapper.UserMapper;
 import com.levi.xymap.service.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,22 +15,22 @@ import java.util.List;
  * @Date 2022/11/23 16:33
  * @Version 1.0
  **/
-@SpringBootApplication
 @RestController
+@RequestMapping("config")
 public class ConfigController {
-    @Autowired(required = false)
-    ConfigService configService;
+    private ConfigService configService;
+    @Autowired
+    public ConfigController() {
+
+    }
 
     @GetMapping("/helloworld")
     public String hello() {
         return "Hello World!";
     }
 
-    @RequestMapping(value = "/tpls")
+    @GetMapping(value = "/tpls")
     public List tpls(){
         return configService.getThumbTplInfos();
     }
-
-
-
 }
