@@ -4,6 +4,8 @@ import com.levi.xymap.entity.Document;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -11,5 +13,6 @@ import java.util.List;
 public interface DocumentService {
     List<List> readExcel(InputStream inputStream);
     List<Document> readZip(InputStream inputStream);
-    List<Document> readZip(File file);
+    List<Document> readZip(File file) throws IOException;
+    List<Document> readZipIn(InputStream inputStream) throws IOException;
 }
