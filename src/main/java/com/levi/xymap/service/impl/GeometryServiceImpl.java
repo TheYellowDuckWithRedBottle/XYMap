@@ -15,6 +15,5 @@ public class GeometryServiceImpl implements GeometryService {
     @Override
     public void getZipCoordinates(InputStream file) {
 
-
     }
 }
