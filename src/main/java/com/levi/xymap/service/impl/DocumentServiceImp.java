@@ -3,6 +3,7 @@ package com.levi.xymap.service.impl;
 import com.levi.xymap.entity.Document;
 import com.levi.xymap.service.DocumentService;
 import org.apache.commons.io.IOUtils;
+import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -19,6 +20,7 @@ import java.util.zip.ZipFile;
  * @Date 2023/2/21 22:54
  * @Version 1.0
  **/
+@Service
 public class DocumentServiceImp implements DocumentService {
     @Override
     public List<List> readExcel(InputStream inputStream) {
@@ -31,11 +33,44 @@ public class DocumentServiceImp implements DocumentService {
     }
 
     @Override
-    public List<Document> readZip(File file) throws IOException {
+    public List<Document> readZip(File file)  {
         List<Document> documents = new ArrayList<>();
-        ZipFile zipFile = new ZipFile(file,0, Charset.forName("GBK"));
+        ZipFile zipFile = null;
+        try {
+            zipFile = new ZipFile(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("new ZipFile压缩出现问题");
+        }
         Enumeration<ZipEntry> zipEnumeration = (Enumeration<ZipEntry>) zipFile.entries();
-        return null;
+        while(zipEnumeration.hasMoreElements()){
+            ZipEntry zipEntry = zipEnumeration.nextElement();
+            if(zipEntry.isDirectory()){
+                continue;
+            }
+            InputStream inputStream = null;
+            try {
+                String fileName = zipEntry.getName();
+                Document document = Document.getDocByName(fileName); // 初始化文件名称
+
+                 inputStream = zipFile.getInputStream(zipEntry);// 复制文件内容
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                IOUtils.copy(inputStream, bos);
+                document.setContent(bos.toByteArray());
+                documents.add(document);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    zipFile.close();
+                    IOUtils.closeQuietly(inputStream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+        return documents;
     }
 
     @Override
@@ -45,7 +80,8 @@ public class DocumentServiceImp implements DocumentService {
         FileOutputStream output = new FileOutputStream(tempFile);
         IOUtils.copyLarge(inputStream, output, 0, inputStream.available(), new byte[inputStream.available()]);
         output.close();
-        readZip(tempFile);
+        IOUtils.closeQuietly(output);
+        documents = readZip(tempFile);
         return documents;
     }
 }

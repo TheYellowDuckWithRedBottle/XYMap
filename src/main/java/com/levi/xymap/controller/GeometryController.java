@@ -1,6 +1,8 @@
 package com.levi.xymap.controller;
 
 import com.levi.xymap.service.GeometryService;
+import com.levi.xymap.service.impl.GeometryServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +21,13 @@ import java.io.IOException;
 @Controller
 @RequestMapping(value="/geometry")
 public class GeometryController {
+    @Autowired
     GeometryService geometryService;
+
+//    public GeometryController() {
+//        this.geometryService = new GeometryServiceImpl();
+//    }
+
     @PostMapping("/zip/upload")
     public void zipUpload(@RequestParam(value = "file") MultipartFile file) throws Exception {
         //TODO
