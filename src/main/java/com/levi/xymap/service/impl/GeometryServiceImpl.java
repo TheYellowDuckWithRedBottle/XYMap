@@ -75,10 +75,14 @@ public class GeometryServiceImpl implements GeometryService {
             } catch (FactoryException e) {
                 e.printStackTrace();
             } finally {
-                projFileReader.close();
+                try {
+                    projFileReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
         }
-
+        return null;
     }
 }
