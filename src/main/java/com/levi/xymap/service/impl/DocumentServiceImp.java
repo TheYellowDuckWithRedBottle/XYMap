@@ -53,7 +53,7 @@ public class DocumentServiceImp implements DocumentService {
                 String fileName = zipEntry.getName();
                 Document document = Document.getDocByName(fileName); // 初始化文件名称
 
-                 inputStream = zipFile.getInputStream(zipEntry);// 复制文件内容
+                inputStream = zipFile.getInputStream(zipEntry);// 复制文件内容
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 IOUtils.copy(inputStream, bos);
                 document.setContent(bos.toByteArray());
@@ -61,12 +61,7 @@ public class DocumentServiceImp implements DocumentService {
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-                try {
-                    zipFile.close();
-                    IOUtils.closeQuietly(inputStream);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
             }
 
         }
@@ -76,7 +71,7 @@ public class DocumentServiceImp implements DocumentService {
     @Override
     public List<Document> readZipIn(InputStream inputStream) throws IOException {
         List<Document> documents = new ArrayList<>();
-        File tempFile = new File(System.getProperty("java.io.tmpdir") + File.separator + "temp.zip");
+        File tempFile = new File(System.getProperty("java.io.tmpdir") +File.separator + System.currentTimeMillis() + "temp.zip");
         FileOutputStream output = new FileOutputStream(tempFile);
         IOUtils.copyLarge(inputStream, output, 0, inputStream.available(), new byte[inputStream.available()]);
         output.close();

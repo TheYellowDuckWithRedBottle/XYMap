@@ -60,7 +60,7 @@ public class Document {
     }
     public static Document getDocByName(String fileName){
         if(fileName.contains(DOTS)){
-            String[] names=fileName.split(DOTS);
+            String[] names=fileName.split("\\"+DOTS);
             return new Document(fileName,Type.getType(names[names.length-1]));
         }else {
             return new Document(fileName,Type.getType("txt"));
