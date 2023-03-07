@@ -29,8 +29,9 @@ public class GeometryController {
 //    }
 
     @PostMapping("/zip/upload")
-    public void zipUpload(@RequestParam(value = "file") MultipartFile file) throws Exception {
+    public String zipUpload(@RequestParam(value = "file") MultipartFile file) throws Exception {
         //TODO
-        geometryService.getZipCoordinates(file.getInputStream());
+       String geojson = geometryService.getZipCoordinates(file.getInputStream());
+       return geojson;
     }
 }

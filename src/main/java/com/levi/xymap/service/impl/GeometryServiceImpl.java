@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.levi.xymap.entity.Document;
 import com.levi.xymap.service.DocumentService;
 import com.levi.xymap.service.GeometryService;
+import org.apache.commons.io.IOUtils;
+import org.checkerframework.checker.units.qual.Current;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.PrjFileReader;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -50,29 +52,43 @@ public class GeometryServiceImpl implements GeometryService {
     DocumentService documentService;
     @Override
     public String getZipCoordinates(InputStream file) {
+        FileOutputStream outputStream = null;
         try {
           List<Document> documents =  documentService.readZipIn(file);
           File FileShp = null;
           File FileDbf = null;
           File FilePrj = null;
-          String path = System.getProperty("java.io.tmpdir");
+          String path = System.getProperty("java.io.tmpdir")+"temp"+ System.currentTimeMillis();
+          File fileFolder = new File(path);
+          if(!fileFolder.exists()) {
+              fileFolder.mkdir();
+          }
           for(Document document : documents){
+              String filePath = path+"\\"+document.getName();
+              outputStream = new FileOutputStream(filePath);
+              IOUtils.write(document.getContent(),outputStream);
               if(document.getName().endsWith(".shp")){
-                  FileShp = new File(path+ document.getName());
+                  FileShp = new File(filePath);
               }else if(document.getName().endsWith(".dbf")){
-                  FileDbf = new File(path+document.getName());
+                  FileDbf = new File(filePath);
               }else if(document.getName().endsWith(".prj")){
-                  FilePrj = new File(path+document.getName());
+                  FilePrj = new File(filePath);
               }
           }
           String geoJSON = parseShpfile(FileShp,FileDbf,FilePrj,null);
           return geoJSON;
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e.getLocalizedMessage());
+        }finally {
+            try {
+                outputStream.close();
+                IOUtils.closeQuietly();
+            } catch (IOException e) {
+
+            }
         }
-        return "";
     }
-    private String parseShpfile(File shpFile,File bdfFile, File prjFile,Map properties) throws MalformedURLException {
+    private String parseShpfile(File shpFile,File bdfFile, File prjFile,Map properties) throws IOException {
         List<Map<String, Object>> featureList = new ArrayList<>();
         ShapefileDataStore shpFileDataStore = null;
         FeatureSource featureSource = null;
@@ -84,8 +100,8 @@ public class GeometryServiceImpl implements GeometryService {
         }
         // 获取上传图形的crs
         if(prjFile !=null) {
+            FileInputStream fileInputStream = new FileInputStream(prjFile);
             try {
-                FileInputStream fileInputStream = new FileInputStream(shpFile);
                 final FileChannel channel = fileInputStream.getChannel();
                 projFileReader = new PrjFileReader(channel);
                 CoordinateReferenceSystem crs = projFileReader.getCoordinateReferenceSystem();
@@ -97,6 +113,8 @@ public class GeometryServiceImpl implements GeometryService {
             } catch (FactoryException e) {
                 e.printStackTrace();
             } finally {
+                fileInputStream.close();
+                projFileReader.close();
             }
         }
         // 获取图形数据
@@ -107,29 +125,33 @@ public class GeometryServiceImpl implements GeometryService {
             if (featureCollection.size() > 0) {
                 FeatureIterator<SimpleFeature> iterator =  featureCollection.features();
                 List<Geometry> geometries = new ArrayList<>(); // 放所有的geometry
-                while(iterator.hasNext()) {
-                   SimpleFeature feature = iterator.next(); // 迭代器
-                   List<Geometry> multiPolygons = new ArrayList<>(); // 放当前的Multipgeometry
-                   Geometry geo =  (Geometry)feature.getDefaultGeometry();
-                   Map<String,Object> map = new HashMap<>();
-                    if( geo instanceof MultiPolygon) {
-                       MultiPolygon multiPolygon = (MultiPolygon) geo;
-                       // 判断如过geometry是多个还是一个组成
-                       if (multiPolygon.getNumGeometries() == 1){
-                           geo = (Geometry) multiPolygon.getGeometryN(0);
-                           multiPolygons.add(geo);
-                       } else if( multiPolygon.getNumGeometries() > 1) {
-                           for( int i = 0;i<multiPolygon.getNumGeometries();i++) {
-                               multiPolygons.add(multiPolygon.getGeometryN(i));
-                           }
-                       }
-                   } else {
-                       multiPolygons.add(geo);
-                   }
-
-                    geometries.addAll(multiPolygons);
-                    map.put("SHAPE",geo.toText());
-                    featureList.add(map);
+                try{
+                    while(iterator.hasNext()) {
+                        SimpleFeature feature = iterator.next(); // 迭代器
+                        List<Geometry> multiPolygons = new ArrayList<>(); // 放当前的Multipgeometry
+                        Geometry geo =  (Geometry)feature.getDefaultGeometry();
+                        Map<String,Object> map = new HashMap<>();
+                        if( geo instanceof MultiPolygon) {
+                            MultiPolygon multiPolygon = (MultiPolygon) geo;
+                            // 判断如过geometry是多个还是一个组成
+                            if (multiPolygon.getNumGeometries() == 1){
+                                geo = (Geometry) multiPolygon.getGeometryN(0);
+                                multiPolygons.add(geo);
+                            } else if( multiPolygon.getNumGeometries() > 1) {
+                                for( int i = 0;i<multiPolygon.getNumGeometries();i++) {
+                                    multiPolygons.add(multiPolygon.getGeometryN(i));
+                                }
+                            }
+                        } else {
+                            multiPolygons.add(geo);
+                        }
+                        geometries.addAll(multiPolygons);
+                        map.put("SHAPE",geo.toText());
+                        featureList.add(map);
+                    }
+                }finally {
+                    iterator.close();
+                    shpFileDataStore.dispose();
                 }
                 // todo 对geometries做拓扑错误判
             }
@@ -138,32 +160,29 @@ public class GeometryServiceImpl implements GeometryService {
         }
         // 判断dbfFile
         if( bdfFile !=null) {
-            try {
-                FileInputStream  fileInputStream = new FileInputStream(bdfFile);
+                FileInputStream fileInputStream = new FileInputStream(bdfFile);
                 DbfReader = new DbaseFileReader(fileInputStream.getChannel(), false, null);
                 DbaseFileHeader header = DbfReader.getHeader();
                 int fieldsNum = header.getNumFields();
-                int recordIndex = 0;
-                while(DbfReader.hasNext()) {
-                   DbaseFileReader.Row row =  DbfReader.readRow();
-                   for(int i =0;i<fieldsNum;i++) {
-                       String  fieldName = header.getFieldName(i);
-                       Object value = row.read(i);
-                       Map<String, Object> map = featureList.get(i);
-                       if(map.containsKey(fieldName.toLowerCase())|| map.containsKey(fieldName.toUpperCase())) {
-                           continue;
-                       }
-                       map.put(fieldName, value);
-                   }
+                try{
+                    while(DbfReader.hasNext()) {
+                        DbaseFileReader.Row row =  DbfReader.readRow();
+                        for(int i =0;i<fieldsNum;i++) {
+                            String  fieldName = header.getFieldName(i);
+                            Object value = row.read(i);
+                            Map<String, Object> map = featureList.get(i);
+                            if(map.containsKey(fieldName.toLowerCase())|| map.containsKey(fieldName.toUpperCase())) {
+                                continue;
+                            }
+                            map.put(fieldName, value);
+                        }
+                    }
+                }finally {
+                    DbfReader.close();
                 }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
-        }
-         FeatureCollection featureCollection =  list2FeatureCollection(featureList,sourceCrs,sourceCrs);
+            }
+        FeatureCollection featureCollection =  list2FeatureCollection(featureList,sourceCrs,sourceCrs);
         String geoJSON = featureCollection2GeoJSON(featureCollection);
         return geoJSON;
     }
