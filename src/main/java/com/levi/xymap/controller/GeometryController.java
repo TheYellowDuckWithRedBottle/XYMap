@@ -19,7 +19,7 @@ import java.io.IOException;
  * @Version 1.0
  **/
 @Controller
-@RequestMapping(value="/geometry")
+@RequestMapping(value="geometry")
 public class GeometryController {
     @Autowired
     GeometryService geometryService;

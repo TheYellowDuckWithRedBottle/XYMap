@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+
 /**
  * @ClassName
  * @Description TODO
@@ -43,7 +44,7 @@ public class DocumentServiceImp implements DocumentService {
             System.out.println("new ZipFile压缩出现问题");
         }
         Enumeration<ZipEntry> zipEnumeration = (Enumeration<ZipEntry>) zipFile.entries();
-        while(zipEnumeration.hasMoreElements()){
+        while(zipEnumeration.hasMoreElements() == true ){
             ZipEntry zipEntry = zipEnumeration.nextElement();
             if(zipEntry.isDirectory()){
                 continue;
