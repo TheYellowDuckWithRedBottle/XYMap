@@ -9,7 +9,6 @@ import org.geotools.data.PrjFileReader;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
-import org.geotools.data.shapefile.files.ShpFiles;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
@@ -30,12 +29,11 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.spel.ast.NullLiteral;
 import org.springframework.stereotype.Service;
-import org.w3.xlink.Simple;
 
 import java.io.*;
 import java.net.MalformedURLException;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.util.*;
 
@@ -57,7 +55,7 @@ public class GeometryServiceImpl implements GeometryService {
           File FileShp = null;
           File FileDbf = null;
           File FilePrj = null;
-          String path = System.getProperty("java.io.tmpdir").concat(String.valueOf(System.currentTimeMillis()));
+          String path = System.getProperty("java.io.tmpdir");
           for(Document document : documents){
               if(document.getName().endsWith(".shp")){
                   FileShp = new File(path+ document.getName());
@@ -87,7 +85,9 @@ public class GeometryServiceImpl implements GeometryService {
         // 获取上传图形的crs
         if(prjFile !=null) {
             try {
-                projFileReader = new PrjFileReader((ReadableByteChannel) new ShpFiles(prjFile));
+                FileInputStream fileInputStream = new FileInputStream(shpFile);
+                final FileChannel channel = fileInputStream.getChannel();
+                projFileReader = new PrjFileReader(channel);
                 CoordinateReferenceSystem crs = projFileReader.getCoordinateReferenceSystem();
                 if(crs != null) {
                     sourceCrs = crs;
@@ -97,11 +97,6 @@ public class GeometryServiceImpl implements GeometryService {
             } catch (FactoryException e) {
                 e.printStackTrace();
             } finally {
-                try {
-                    projFileReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
         // 获取图形数据
