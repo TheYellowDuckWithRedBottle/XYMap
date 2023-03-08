@@ -100,20 +100,16 @@ public class GeometryServiceImpl implements GeometryService {
         }
         // 获取上传图形的crs
         if(prjFile !=null) {
-            FileInputStream fileInputStream = new FileInputStream(prjFile);
-            try {
+            try(FileInputStream fileInputStream = new FileInputStream(prjFile);) {
                 final FileChannel channel = fileInputStream.getChannel();
                 projFileReader = new PrjFileReader(channel);
                 CoordinateReferenceSystem crs = projFileReader.getCoordinateReferenceSystem();
                 if(crs != null) {
                     sourceCrs = crs;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             } catch (FactoryException e) {
                 e.printStackTrace();
             } finally {
-                fileInputStream.close();
                 projFileReader.close();
             }
         }
@@ -133,7 +129,7 @@ public class GeometryServiceImpl implements GeometryService {
                         Map<String,Object> map = new HashMap<>();
                         if( geo instanceof MultiPolygon) {
                             MultiPolygon multiPolygon = (MultiPolygon) geo;
-                            // 判断如过geometry是多个还是一个组成
+                            // 判断geometry是多个还是一个组成
                             if (multiPolygon.getNumGeometries() == 1){
                                 geo = (Geometry) multiPolygon.getGeometryN(0);
                                 multiPolygons.add(geo);
@@ -159,33 +155,47 @@ public class GeometryServiceImpl implements GeometryService {
             e.printStackTrace();
         }
         // 判断dbfFile
-        if( bdfFile !=null) {
+        if(bdfFile !=null) {
                 FileInputStream fileInputStream = new FileInputStream(bdfFile);
                 DbfReader = new DbaseFileReader(fileInputStream.getChannel(), false, null);
                 DbaseFileHeader header = DbfReader.getHeader();
                 int fieldsNum = header.getNumFields();
+                int featureIndex = 0;
                 try{
                     while(DbfReader.hasNext()) {
                         DbaseFileReader.Row row =  DbfReader.readRow();
                         for(int i =0;i<fieldsNum;i++) {
                             String  fieldName = header.getFieldName(i);
                             Object value = row.read(i);
-                            Map<String, Object> map = featureList.get(i);
+                            Map<String, Object> map = featureList.get(featureIndex);
                             if(map.containsKey(fieldName.toLowerCase())|| map.containsKey(fieldName.toUpperCase())) {
                                 continue;
                             }
                             map.put(fieldName, value);
                         }
                     }
+                    featureIndex++;
                 }finally {
                     DbfReader.close();
                 }
-
             }
-        FeatureCollection featureCollection =  list2FeatureCollection(featureList,sourceCrs,sourceCrs);
+        // 得到的map列表转化为 featureCollection todo 这个参数是两个相同的crs
+        CoordinateReferenceSystem targetCrs = null;
+        try {
+            targetCrs = CRS.decode("EPSG:4490", true);
+        } catch (FactoryException e) {
+            e.printStackTrace();
+        }
+        FeatureCollection featureCollection =  list2FeatureCollection(featureList,sourceCrs,targetCrs);
         String geoJSON = featureCollection2GeoJSON(featureCollection);
         return geoJSON;
     }
+
+    /**
+     *
+     * @param feature feature或者featureCollection
+     * @return geojson
+     */
     private String featureCollection2GeoJSON(Object feature){
         FeatureJSON featureJSON = new FeatureJSON(new GeometryJSON(14));
         StringWriter geoJson = new StringWriter();
@@ -230,12 +240,11 @@ public class GeometryServiceImpl implements GeometryService {
             }
         }
         return geoJson.toString();
-
     }
 
     /**
-     *
-     * @param featureList
+     * 将map列表转化为FeatureCollection(如果sourceCrs和targetCrs不一致，会进行坐标转换)
+     * @param featureList 键值对列表，每个键值对代表一个feature，包括SHAPE和其他feature属性
      * @param sourceCrs 上传的数据的坐标系统
      * @param targetCrs 要转化的地图的坐标系统
      */
@@ -243,13 +252,25 @@ public class GeometryServiceImpl implements GeometryService {
         DefaultFeatureCollection collection = new DefaultFeatureCollection(null, null);
         for(Map item: featureList) {
             SimpleFeature simpleFeature = map2SimpleFeature(item,sourceCrs,targetCrs);
-            collection.add(simpleFeature);
+            if(simpleFeature !=null){
+                collection.add(simpleFeature);
+            }else {
+                System.out.println("simpleFeature is null，可能是item中没有SHAPE属性");
+            }
         }
         return collection;
     }
+
+    /**
+     * 将map转化为SimpleFeature
+     * @param featureMap 键值对，包括SHAPE和其他feature属性
+     * @param sourceCrs 数据原来的坐标系
+     * @param targetCrs 要转化的目标坐标系
+     * @return SimpleFeature
+     */
     private SimpleFeature map2SimpleFeature(Map<String,Object> featureMap, CoordinateReferenceSystem sourceCrs, CoordinateReferenceSystem targetCrs) {
         if(featureMap.containsKey("SHAPE")) {
-            var shpString =  (String)featureMap.get("SHAPE");
+            String shpString =  (String)featureMap.get("SHAPE");
             Geometry geometry =  readWkt(shpString);
             SimpleFeatureType featureType;
             if(geometry !=null && sourceCrs !=null && targetCrs !=null && sourceCrs != targetCrs) {
@@ -275,20 +296,27 @@ public class GeometryServiceImpl implements GeometryService {
             return null;
         }
     }
-    private SimpleFeatureType getFeatureType(Map<String, Object> value, CoordinateReferenceSystem crs) {
+
+    /**
+     *
+     * @param featureItem feature的属性键值对，包括SHAPE和其他属性
+     * @param crs 要设置featureType的坐标系
+     * @return SimpleFeatureType ,为Feature类添加属性，geomety,crs和其他属性
+     */
+    private SimpleFeatureType getFeatureType(Map<String, Object> featureItem, CoordinateReferenceSystem crs) {
         SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
         typeBuilder.setName("Feature");
         if(crs !=null) {
             typeBuilder.setCRS(crs);
         }
-        String[] keys = value.keySet().toArray(new String [0]);
+        String[] keys = featureItem.keySet().toArray(new String [0]);
         for(String key: keys)  {
             if("SHAPE".equals(key)) {
                 typeBuilder.add("geometry", Geometry.class);
             } else if("crs".equals(key)) {
                 continue;
             } else {
-                typeBuilder.add(key, value.get(key) !=null?value.get(key).getClass():String.class);
+                typeBuilder.add(key, featureItem.get(key) !=null?featureItem.get(key).getClass():String.class);
             }
         }
         return typeBuilder.buildFeatureType();
@@ -312,12 +340,13 @@ public class GeometryServiceImpl implements GeometryService {
     }
     private Geometry readWkt(String wkt) {
         WKTReader wktReader = new WKTReader();
+        Geometry geometry = null;
         try {
-           Geometry geometry = wktReader.read(wkt);
-           return geometry;
+            geometry = wktReader.read(wkt);
         } catch (ParseException e) {
             e.printStackTrace();
+            System.out.println("wkt转换为geometry失败,请检查wkt格式");
         }
-        return null;
+        return geometry;
     }
  }
