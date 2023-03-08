@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName
@@ -30,5 +32,16 @@ public class TplTest {
         tplNames.forEach(tpl ->{
             System.out.println("模板："+tpl);
         });
+    }
+    @Test
+    public void testTpl2() throws IOException {
+        Map<String, Object> featureItem = new HashMap();
+        featureItem.put("name","levi");
+        featureItem.put("age",18);
+        String[] keys = featureItem.keySet().toArray(new String [0]);
+        System.out.println(keys);
+        var s = featureItem.keySet();
+        var b = new Double[0];
+        var c= s.toArray(b);
     }
 }
